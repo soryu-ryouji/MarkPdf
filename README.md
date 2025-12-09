@@ -4,6 +4,18 @@
 
 ## Usage
 
+### Install pdftk
+
+```shell
+# macos - brew
+brew install pdftk-java
+
+# debian - apt
+apt install pdftk
+```
+
+### MarkPdf 的使用说明
+
 ```shell
 # 导出 pdf 书签文件
 MarkPdf export --pdf your_pdf_path --mark your_mark_path
