@@ -15,7 +15,7 @@ public class Mark
         Page = page;
     }
 
-    public string ToNormalMark()
+    public string ToTkMark()
     {
         return $"BookmarkBegin\nBookmarkTitle: {Title}\nBookmarkLevel: {Level}\nBookmarkPageNumber: {Page}";
     }
@@ -27,13 +27,13 @@ public class Mark
 
     public override string ToString()
     {
-        return ToNormalMark();
+        return ToTkMark();
     }
 }
 
 public static class Bookmark
 {
-    public static List<Mark> NormalBookmarkToMarks(string text)
+    public static List<Mark> ParseTkMark(string text)
     {
         var pattern = @"^BookmarkBegin\nBookmarkTitle: (.+)\nBookmarkLevel: (\d+)\nBookmarkPageNumber: (\d+)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
@@ -49,7 +49,7 @@ public static class Bookmark
         return marks;
     }
 
-    public static List<Mark> SimpleBookmarkToMarks(string text)
+    public static List<Mark> ParseSimpleMark(string text)
     {
         var pattern = @"^([#]+) \[(.*)\]\((\d+)\)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
@@ -65,14 +65,14 @@ public static class Bookmark
         return marks;
     }
 
-    public static string MarksToNormalBookmark(List<Mark> marks)
+    public static string ToTkMark(List<Mark> marks)
     {
-        return string.Join("\n\n", marks.ConvertAll(mark => mark.ToNormalMark()));
+        return string.Join("\n\n", marks.ConvertAll(mark => mark.ToTkMark()));
     }
 
-    public static string ExtractPdfNormalBookmarks(string infoText)
+    public static string ExtractTkMark(string infoText)
     {
-        var lines = infoText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = infoText.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
         var pattern = @"^BookmarkBegin|BookmarkTitle: (.+)|BookmarkLevel: (\d+)|BookmarkPageNumber: (\d+)$";
         var resultLines = new List<string>();
         foreach (var line in lines)
@@ -83,7 +83,7 @@ public static class Bookmark
         return string.Join("\n", resultLines);
     }
 
-    public static string RemovePdfInfoBookmark(string text)
+    public static string RemoveTkMarkFromPdfInfo(string text)
     {
         var cleaned = Regex.Replace(text, @"BookmarkBegin(.*?)BookmarkPageNumber: \d+", "", RegexOptions.Singleline);
         cleaned = Regex.Replace(cleaned, @"\n\s*\n", "\n");

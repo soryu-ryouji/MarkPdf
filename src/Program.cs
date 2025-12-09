@@ -23,7 +23,7 @@ class Program
         }
         else if (cmd == "import" && args.Length == 3)
         {
-            return ImportMarks(args[1], args[2]);
+            return ImportSimpleMarkText(args[1], args[2]);
         }
         else
         {
@@ -37,7 +37,7 @@ class Program
     {
         var infoPath = $"{pdfFile}.info";
         // 调用pdftk导出
-        var ret = RunPdftkDump(pdfFile, infoPath);
+        var ret = ExportPdfInfo(pdfFile, infoPath);
         if (ret != 0 || File.Exists(infoPath) is false)
         {
             Console.WriteLine("PDF信息导出失败！");
@@ -45,8 +45,8 @@ class Program
         }
         // 提取并写入mark
         var infoText = File.ReadAllText(infoPath);
-        var marksText = Bookmark.ExtractPdfNormalBookmarks(infoText);
-        var marks = Bookmark.NormalBookmarkToMarks(marksText);
+        var marksText = Bookmark.ExtractTkMark(infoText);
+        var marks = Bookmark.ParseTkMark(marksText);
         using (var writer = new StreamWriter(markFile, false, System.Text.Encoding.UTF8))
         {
             foreach (var mark in marks)
@@ -58,7 +58,7 @@ class Program
     }
 
     // Step 2: 从Mark文件写回书签到PDF
-    static int ImportMarks(string pdfFile, string markFile)
+    static int ImportSimpleMarkText(string pdfFile, string markFile)
     {
         if (!File.Exists(markFile))
         {
@@ -66,10 +66,10 @@ class Program
             return 11;
         }
         var markText = File.ReadAllText(markFile);
-        var marks = Bookmark.SimpleBookmarkToMarks(markText);
+        var marks = Bookmark.ParseSimpleMark(markText);
         // pdftk导出原info
         var infoPath = $"{pdfFile}.info";
-        var ret = RunPdftkDump(pdfFile, infoPath);
+        var ret = ExportPdfInfo(pdfFile, infoPath);
         if (ret != 0 || !File.Exists(infoPath))
         {
             Console.WriteLine("PDF信息导出失败！");
@@ -77,13 +77,13 @@ class Program
         }
         // 清理并插入书签
         var infoText = File.ReadAllText(infoPath);
-        var cleaned = Bookmark.RemovePdfInfoBookmark(infoText);
-        cleaned += Bookmark.MarksToNormalBookmark(marks);
+        var cleaned = Bookmark.RemoveTkMarkFromPdfInfo(infoText);
+        cleaned += Bookmark.ToTkMark(marks);
         File.WriteAllText(infoPath, cleaned);
 
         var outPdfPath = Path.Combine(Path.GetDirectoryName(pdfFile)??".",
             Path.GetFileNameWithoutExtension(pdfFile) + "_new.pdf");
-        var ret2 = RunPdftkUpdate(pdfFile, infoPath, outPdfPath);
+        var ret2 = UpdatePdfFromInfo(pdfFile, infoPath, outPdfPath);
         File.Delete(infoPath);
 
         if (ret2 != 0 || File.Exists(outPdfPath) is false)
@@ -95,7 +95,7 @@ class Program
         return 0;
     }
 
-    static int RunPdftkDump(string pdf, string infoPath)
+    static int ExportPdfInfo(string pdf, string infoPath)
     {
         var p = new Process();
         p.StartInfo.FileName = "pdftk";
@@ -107,7 +107,7 @@ class Program
         return p.ExitCode;
     }
 
-    static int RunPdftkUpdate(string pdf, string infoPath, string outPdf)
+    static int UpdatePdfFromInfo(string pdf, string infoPath, string outPdf)
     {
         var p = new Process();
         p.StartInfo.FileName = "pdftk";
