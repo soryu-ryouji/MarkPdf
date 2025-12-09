@@ -1,34 +1,62 @@
 ﻿
+using System.CommandLine;
 using System.Diagnostics;
 
 namespace MarkPdf;
 
 class Program
 {
-    static int Main(string[] args)
+    public static int Main(string[] args)
     {
-        if (args.Length < 1)
-        {
-            Console.WriteLine("用法：");
-            Console.WriteLine("  导出: dotnet run export <pdf路径> <mark路径>");
-            Console.WriteLine("  导入: dotnet run import <pdf路径> <mark路径>");
-            return 1;
-        }
+        PraseArgs(args);
+        return 0;
+    }
 
-        var cmd = args[0].ToLower();
+    private static void PraseArgs(string[] args)
+    {
+        var rootCommand = new RootCommand("MarkPdf - A simple PDF bookmark manager");
 
-        if (cmd == "export" && args.Length == 3)
+        var pdfOption = new Option<string>("--pdf", "-p")
         {
-            return Pdf.ExportMarks(args[1], args[2]);
-        }
-        else if (cmd == "import" && args.Length == 3)
+            Description = "Path to the PDF file",
+            Required = true,
+        };
+
+        var markOption = new Option<string>("--mark", "-m")
         {
-            return Pdf.ImportSimpleMarkText(args[1], args[2]);
-        }
-        else
+            Description = "Path to the mark file",
+            Required = true,
+        };
+
+        var importCommand = new Command("import", "Import bookmarks from a mark file to a PDF")
         {
-            Console.WriteLine("参数有误！");
-            return 2;
-        }
+            pdfOption,
+            markOption
+        };
+
+        var exportCommand = new Command("export", "Export bookmarks from a PDF to a mark file")
+        {
+            pdfOption,
+            markOption
+        };
+
+        importCommand.SetAction((importArgs) =>
+        {
+            var pdfPath = importArgs.GetValue<string>(pdfOption);
+            var markPath = importArgs.GetValue<string>(markOption);
+            Pdf.ImportSimpleMarkText(pdfPath!, markPath!);
+        });
+
+        exportCommand.SetAction((exportArgs) =>
+        {
+            var pdfPath = exportArgs.GetValue<string>(pdfOption);
+            var markPath = exportArgs.GetValue<string>(markOption);
+            Pdf.ExportMarks(pdfPath!, markPath!);
+        });
+
+        rootCommand.Add(importCommand);
+        rootCommand.Add(exportCommand);
+
+        rootCommand.Parse(args).Invoke();
     }
 }
