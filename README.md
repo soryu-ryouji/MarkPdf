@@ -28,3 +28,13 @@ MarkPdf import --pdf your_pdf_path --mark your_mark_path
 # [一级测试名称](1)
 ## [二级测试名称](4)
 ```
+
+### How to Build
+
+运行 dotnet 编译命令
+
+命令文件会在 `bin/Release/net10.0/对应平台/publish/` 文件夹下找到
+
+```shell
+dotnet publish
+```
