@@ -2,70 +2,41 @@ using System.Text.RegularExpressions;
 
 namespace MarkPdf;
 
-public class Mark
-{
-    public string Title { get; }
-    public int Level { get; }
-    public int Page { get; }
-
-    public Mark(string title, int level, int page)
-    {
-        Title = title;
-        Level = level;
-        Page = page;
-    }
-
-    public string ToTkMark()
-    {
-        return $"BookmarkBegin\nBookmarkTitle: {Title}\nBookmarkLevel: {Level}\nBookmarkPageNumber: {Page}";
-    }
-
-    public string ToSimpleMark()
-    {
-        return $"{new string('#', Level)} [{Title}]({Page})";
-    }
-
-    public override string ToString()
-    {
-        return ToTkMark();
-    }
-}
-
 public static class Bookmark
 {
-    public static List<Mark> ParseTkMark(string text)
+    public static List<PdfMark> ParseTkMark(string text)
     {
         var pattern = @"^BookmarkBegin\nBookmarkTitle: (.+)\nBookmarkLevel: (\d+)\nBookmarkPageNumber: (\d+)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
-        var marks = new List<Mark>();
+        var marks = new List<PdfMark>();
 
         foreach (Match match in matches)
         {
             var title = match.Groups[1].Value;
             var level = int.Parse(match.Groups[2].Value);
             var page = int.Parse(match.Groups[3].Value);
-            marks.Add(new Mark(title, level, page));
+            marks.Add(new PdfMark(title, level, page));
         }
         return marks;
     }
 
-    public static List<Mark> ParseSimpleMark(string text)
+    public static List<PdfMark> ParseSimpleMark(string text)
     {
         var pattern = @"^([#]+) \[(.*)\]\((\d+)\)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
-        var marks = new List<Mark>();
+        var marks = new List<PdfMark>();
 
         foreach (Match match in matches)
         {
             var level = match.Groups[1].Value.Length;
             var title = match.Groups[2].Value;
             var page = int.Parse(match.Groups[3].Value);
-            marks.Add(new Mark(title, level, page));
+            marks.Add(new PdfMark(title, level, page));
         }
         return marks;
     }
 
-    public static string ToTkMark(List<Mark> marks)
+    public static string ToTkMark(List<PdfMark> marks)
     {
         return string.Join("\n\n", marks.ConvertAll(mark => mark.ToTkMark()));
     }
