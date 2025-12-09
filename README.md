@@ -38,3 +38,7 @@ MarkPdf import --pdf your_pdf_path --mark your_mark_path
 ```shell
 dotnet publish
 ```
+
+## LICENSE
+
+项目使用 MIT 协议开源
