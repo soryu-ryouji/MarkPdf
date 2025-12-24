@@ -22,6 +22,9 @@ MarkPdf export --pdf your_pdf_path --mark your_mark_path
 
 # 导入修改后的 pdf 书签文件
 MarkPdf import --pdf your_pdf_path --mark your_mark_path
+
+# 导入修改后的 pdf 书签文件, 并替换原始文件
+MarkPdf import --pdf your_pdf_path --mark your_mark_path --replace
 ```
 
 **目录文件结构**
