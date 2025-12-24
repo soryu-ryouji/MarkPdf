@@ -28,10 +28,17 @@ class Program
             Required = true,
         };
 
+        var replaceOption = new Option<bool>("--replace", "-r")
+        {
+            Description = "Replace the original PDF file instead of creating a new one",
+            Required = false,
+        };
+
         var importCommand = new Command("import", "Import bookmarks from a mark file to a PDF")
         {
             pdfOption,
-            markOption
+            markOption,
+            replaceOption
         };
 
         var exportCommand = new Command("export", "Export bookmarks from a PDF to a mark file")
@@ -44,7 +51,8 @@ class Program
         {
             var pdfPath = importArgs.GetValue<string>(pdfOption);
             var markPath = importArgs.GetValue<string>(markOption);
-            Pdf.ImportSimpleMarkText(pdfPath!, markPath!);
+            var replace = importArgs.GetValue<bool>(replaceOption);
+            Pdf.ImportSimpleMarkText(pdfPath!, markPath!, replace);
         });
 
         exportCommand.SetAction((exportArgs) =>
