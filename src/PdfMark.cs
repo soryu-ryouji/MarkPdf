@@ -20,6 +20,7 @@ public class PdfMark
 
     public string ToSimpleMark()
     {
-        return $"{new string('#', Level)} [{Title}]({Page})";
+        var prefix = new string('#', Level);
+        return $"{prefix} {Title} {Page}";
     }
 }

@@ -26,7 +26,8 @@ public static class Bookmark
     {
         // 统一换行符
         text = NormalizeLineEndings(text);
-        var pattern = @"^(#+)\s+\[(.+?)\]\((\d+)\)$";
+        // 格式: # 标题 页码 (最后一个空格分割标题和页码)
+        var pattern = @"^(#+)\s+(.+)\s+(\d+)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
         var marks = new List<PdfMark>();
 
