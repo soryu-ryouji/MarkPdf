@@ -12,6 +12,9 @@ brew install pdftk-java
 
 # debian - apt
 apt install pdftk
+
+# windows - scoop
+scoop install pdftk
 ```
 
 ### MarkPdf 的使用说明
