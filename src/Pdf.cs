@@ -81,7 +81,7 @@ class Pdf
             {
                 File.WriteAllText(tempInfo, infoContent, Utf8NoBom);
                 RunPdftk($"\"{tempPdf}\" update_info_utf8 \"{tempInfo}\" output \"{tempOut}\"");
-                
+
                 if (File.Exists(tempOut))
                 {
                     File.Copy(tempOut, outPdf, true);
@@ -121,7 +121,7 @@ class Pdf
         p.StartInfo.UseShellExecute = false;
         p.StartInfo.RedirectStandardError = true;
         p.Start();
-        
+
         var error = p.StandardError.ReadToEnd();
         p.WaitForExit();
 

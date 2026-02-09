@@ -1,6 +1,5 @@
 ﻿
 using System.CommandLine;
-using System.Diagnostics;
 
 namespace MarkPdf;
 
