@@ -9,4 +9,4 @@ if (Test-Path $targetPath) {
 }
 
 Copy-Item $publishPath -Destination $targetPath -Recurse
-Write-Host "已复制到: $targetPath"
+Write-Host "Copy to: $targetPath"
