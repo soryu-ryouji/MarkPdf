@@ -6,7 +6,6 @@ public static class Bookmark
 {
     public static List<PdfMark> ParseTkMark(string text)
     {
-        // 统一换行符
         text = NormalizeLineEndings(text);
         var pattern = @"^BookmarkBegin\nBookmarkTitle: (.+)\nBookmarkLevel: (\d+)\nBookmarkPageNumber: (\d+)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
@@ -24,9 +23,8 @@ public static class Bookmark
 
     public static List<PdfMark> ParseSimpleMark(string text)
     {
-        // 统一换行符
         text = NormalizeLineEndings(text);
-        // 格式: # 标题 页码 (最后一个空格分割标题和页码)
+        // Format | # Title PageNumber
         var pattern = @"^(#+)\s+(.+)\s+(\d+)$";
         var matches = Regex.Matches(text, pattern, RegexOptions.Multiline);
         var marks = new List<PdfMark>();
@@ -62,11 +60,8 @@ public static class Bookmark
 
     public static string RemoveTkMarkFromPdfInfo(string text)
     {
-        // 统一换行符
         text = NormalizeLineEndings(text);
-        // 移除所有书签块
         var cleaned = Regex.Replace(text, @"BookmarkBegin\nBookmarkTitle: .+\nBookmarkLevel: \d+\nBookmarkPageNumber: \d+\n?", "", RegexOptions.Multiline);
-        // 移除多余空行
         cleaned = Regex.Replace(cleaned, @"\n{2,}", "\n");
         return cleaned.TrimEnd() + "\n";
     }

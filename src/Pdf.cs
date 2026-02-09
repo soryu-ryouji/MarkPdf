@@ -14,7 +14,7 @@ class Pdf
         var marks = Bookmark.ParseTkMark(marksText);
 
         File.WriteAllLines(markFile, marks.Select(m => m.ToSimpleMark()), Utf8NoBom);
-        Console.WriteLine($"已导出{marks.Count}条书签到: {markFile}");
+        Console.WriteLine($"Export {marks.Count} bookmarks to: {markFile}");
     }
 
     public static void ImportSimpleMarkText(string pdfFile, string markFile, bool replace = false)
@@ -26,7 +26,7 @@ class Pdf
 
         var markText = File.ReadAllText(markFile, Encoding.UTF8);
         var marks = Bookmark.ParseSimpleMark(markText);
-        Console.WriteLine($"解析到 {marks.Count} 条书签");
+        Console.WriteLine($"Parsed {marks.Count} bookmarks from mark file.");
 
         var infoText = RunPdftkDump(pdfFile);
         var cleaned = Bookmark.RemoveTkMarkFromPdfInfo(infoText);
@@ -54,11 +54,11 @@ class Pdf
         {
             File.Copy(outPdfPath, pdfFile, true);
             File.Delete(outPdfPath);
-            Console.WriteLine($"已写入书签并替换: {pdfFile}");
+            Console.WriteLine($"Wrote bookmarks and replaced: {pdfFile}");
         }
         else
         {
-            Console.WriteLine($"已写入书签并生成: {outPdfPath}");
+            Console.WriteLine($"Wrote bookmarks and generated: {outPdfPath}");
         }
     }
 
@@ -67,7 +67,7 @@ class Pdf
         return RunPdftkWithTempFiles(pdfFile, (tempPdf, tempOut) =>
         {
             RunPdftk($"\"{tempPdf}\" dump_data_utf8 output \"{tempOut}\"");
-            return File.Exists(tempOut) ? File.ReadAllText(tempOut, Encoding.UTF8) : 
+            return File.Exists(tempOut) ? File.ReadAllText(tempOut, Encoding.UTF8) :
                 throw new IOException("Failed to export PDF info.");
         });
     }
