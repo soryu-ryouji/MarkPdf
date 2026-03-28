@@ -1,123 +1,372 @@
-# Mark Pdf
+# MarkPdf
 
-一个简单的 PDF 目录编辑工具，基于 iText 实现。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-## 使用方法
+一个轻量级、跨平台的命令行工具，用于编辑 PDF 书签（目录），无需外部依赖。
 
-### MarkPdf 使用说明
+[English](README.md) | 中文
 
-```
-# 导出 PDF 书签文件
-MarkPdf export --pdf your_pdf_path --mark your_mark_path
+---
 
-# 导入修改后的 PDF 书签文件
-MarkPdf import --pdf your_pdf_path --mark your_mark_path
+## 功能特性
 
-# 导入修改后的 PDF 书签文件并替换原文件
-MarkPdf import --pdf your_pdf_path --mark your_mark_path --replace
+- 🚀 **快速轻量** - 优化后仅 ~15MB，无外部依赖
+- 📝 **交互式编辑** - 在喜爱的编辑器中直接编辑书签
+- 🔧 **简单格式** - 类 Markdown 的书签语法
+- 🖥️ **跨平台** - 支持 Windows、macOS 和 Linux
+- 🎯 **智能编辑器检测** - 自动检测 VS Code、Sublime、Vim 等
+- ⚙️ **可配置** - 通过配置文件自定义默认设置
+- 🔄 **增量更新** - 导入新书签时自动替换旧书签
 
-# 交互式编辑书签（自动检测最佳可用编辑器）
-MarkPdf edit --pdf your_pdf_path
+## 安装
 
-# 使用指定编辑器编辑
-MarkPdf edit --pdf your_pdf_path --editor vim
-```
+### 方式 1：预编译二进制文件（推荐）
 
-**目录文件结构**
-
-```
-# 前言 5
-# 目录 6
-# 第01章 关于软件工程生产力 15
-## 1.1 换个角度看"软件工程生产力提升" 15
-## 1.2 Jenkins 简介 18
-## 1.3 Jenkins 与 DevOps 18
-# 第02章 Pipeline 入门 20
-# 第03章 Pipeline 语法讲解 30
-```
-
-- 使用 `#` 表示标题层级（一个 `#` 表示一级标题，两个 `#` 表示二级标题，以此类推）
-- 末尾的数字表示页码
-
-### 配置文件
-
-MarkPdf 支持配置文件来设置默认值：
+从 [Releases](../../releases) 下载最新版本并解压：
 
 ```bash
-# 使用智能默认值初始化配置文件
+# macOS (Apple Silicon)
+tar -xzf MarkPdf-trimmed-osx-arm64.tar.gz
+sudo cp MarkPdf-trimmed-osx-arm64/MarkPdf /usr/local/bin/
+
+# macOS (Intel)
+tar -xzf MarkPdf-trimmed-osx-x64.tar.gz
+sudo cp MarkPdf-trimmed-osx-x64/MarkPdf /usr/local/bin/
+
+# Linux
+tar -xzf MarkPdf-trimmed-linux-x64.tar.gz
+sudo cp MarkPdf-trimmed-linux-x64/MarkPdf /usr/local/bin/
+
+# Windows
+# 解压 MarkPdf-trimmed-win-x64.zip 并添加到 PATH
+```
+
+### 方式 2：从源码构建
+
+**构建要求：**
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/MarkPdf.git
+cd MarkPdf
+
+# 为当前平台构建
+./publish-optimized.sh
+
+# 或手动构建
+dotnet publish -c Release -o ./output
+```
+
+## 快速开始
+
+```bash
+# 初始化配置（创建默认配置文件）
 MarkPdf init
 
-# 编辑配置文件
+# 导出已有书签到文本文件
+MarkPdf export --pdf book.pdf --mark bookmarks.txt
+
+# 交互式编辑书签（打开默认编辑器）
+MarkPdf edit --pdf book.pdf
+
+# 从文件导入书签并替换原 PDF
+MarkPdf import --pdf book.pdf --mark bookmarks.txt --replace
+```
+
+## 书签格式
+
+书签使用简单的文本格式存储：
+
+```text
+# 第1章 引言 1
+## 1.1 概述 2
+## 1.2 背景 3
+# 第2章 方法 5
+## 2.1 设计 6
+### 2.1.1 阶段1 7
+### 2.1.2 阶段2 8
+## 2.2 实现 10
+# 第3章 结论 15
+```
+
+**语法说明：**
+- `#` = 一级标题（章节）
+- `##` = 二级标题（节）
+- `###` = 三级标题（小节）
+- `####` = 四级标题（依此类推）
+- 末尾数字 = 页码
+
+**注意事项：**
+- 每行一个书签
+- 页码必须是正整数
+- 标题和页码之间用空格分隔
+
+## 命令详解
+
+### `init` - 初始化配置
+
+创建带智能默认值的配置文件：
+
+```bash
+MarkPdf init
+```
+
+配置文件位置：`~/.config/MarkPdf/config.json`
+
+### `config` - 编辑配置
+
+在默认编辑器中打开配置文件：
+
+```bash
 MarkPdf config
 ```
 
-**配置文件位置：** `~/.config/MarkPdf/config.json`
-- Windows: `%USERPROFILE%\.config\MarkPdf\config.json`
-- macOS: `~/.config/MarkPdf/config.json`
-- Linux: `~/.config/MarkPdf\config.json`
+### `export` - 导出书签
 
-### 智能编辑器检测
+将 PDF 中的所有书签导出到文本文件：
 
-运行 `MarkPdf init` 或使用自动检测时，按以下优先级检查编辑器：
+```bash
+MarkPdf export --pdf <PDF路径> --mark <书签文件路径>
 
-| 优先级 | 编辑器 | 命令 | 检测方式 |
-|--------|--------|------|----------|
-| 1 | VS Code | `code --wait` | 命令可用 |
-| 2 | Sublime Text | `subl -w` | 命令可用 |
-| 3 | Cursor | `cursor --wait` | 命令可用 |
-| 4 | Zed | `zed --wait` | 命令可用 |
-| 5 | Fleet | `fleet --wait` | 命令可用 |
-| 6 | TextMate | `mate -w` | 命令可用 |
-| 7 | BBEdit | `bbedit` | 命令可用 |
-| 8 | Notepad++ | `notepad++` | Windows 专用，路径检查 |
-| 9 | Notepad2 | `notepad2` | Windows 专用，路径检查 |
-| 10 | Neovim | `nvim` | 命令可用 |
-| 11 | Vim | `vim` | 命令可用 |
-| 12 | GNU Nano | `nano` | 命令可用 |
-| 13 | Vi | `vi` | 命令可用 |
-| 14 | Notepad | `notepad` | Windows 默认 |
-| 15 | TextEdit | `open -t -W -n` | macOS 默认 |
-
-**优先级（从高到低）：**
-1. 命令行 `--editor` 参数
-2. 配置文件 `editor` 设置
-3. `$EDITOR` 环境变量
-4. 从上述列表自动检测
-
-### 交互式编辑模式
-
-`edit` 命令打开您首选的编辑器：
-
-1. 运行 `MarkPdf edit --pdf your.pdf`
-2. 最佳可用编辑器打开，显示当前书签
-3. 按照上述格式编辑书签
-4. 保存并关闭编辑器
-5. PDF 自动更新
-
-### 其他智能默认值
-
-| 设置 | Windows | macOS | Linux |
-|------|---------|-------|-------|
-| **BOM** | `true`（记事本兼容） | `false` | `false` |
-| **编码** | `utf-8` | `utf-8` | `utf-8` |
-| **编辑替换** | `true` | `true` | `true` |
-| **导入替换** | `false` | `false` | `false` |
-
-### 如何构建
-
-运行 dotnet build 命令。
-
-可执行文件将位于 `bin/Release/net10.0/{platform}/publish/` 文件夹中。
-
-```shell
-dotnet publish
+# 示例
+MarkPdf export --pdf book.pdf --mark book-marks.txt
 ```
 
-## 依赖项
+### `import` - 导入书签
+
+将文本文件中的书签导入到 PDF：
+
+```bash
+MarkPdf import --pdf <PDF路径> --mark <书签文件路径> [--replace]
+
+# 示例：创建新文件（默认）
+MarkPdf import --pdf book.pdf --mark new-marks.txt
+# 输出：book_new.pdf
+
+# 示例：替换原文件
+MarkPdf import --pdf book.pdf --mark new-marks.txt --replace
+```
+
+**选项：**
+- `--replace` (-r): 替换原始 PDF 而不是创建新文件
+
+### `edit` - 交互式编辑
+
+在默认编辑器中打开当前书签进行编辑：
+
+```bash
+MarkPdf edit --pdf <PDF路径> [--editor <编辑器命令>]
+
+# 使用默认编辑器
+MarkPdf edit --pdf book.pdf
+
+# 指定编辑器
+MarkPdf edit --pdf book.pdf --editor "vim"
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+MarkPdf edit --pdf book.pdf --editor "subl -w"
+```
+
+**工作流程：**
+1. 运行命令，程序提取当前书签（如果没有则显示模板）
+2. 在编辑器中修改书签
+3. 保存并关闭编辑器
+4. 程序自动更新 PDF 书签
+
+## 配置文件
+
+配置文件：`~/.config/MarkPdf/config.json`
+
+### 配置位置
+
+| 平台 | 路径 |
+|------|------|
+| Windows | `%USERPROFILE%\.config\MarkPdf\config.json` |
+| macOS | `~/.config/MarkPdf/config.json` |
+| Linux | `~/.config/MarkPdf/config.json` |
+
+### 配置项
+
+```json
+{
+  "editor": "code --wait",
+  "editReplace": true,
+  "importReplace": false,
+  "encoding": "utf-8",
+  "bom": false,
+  "exportSuffix": null
+}
+```
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `editor` | 默认编辑器命令 | 自动检测 |
+| `editReplace` | `edit` 命令是否自动替换原 PDF | `true` |
+| `importReplace` | `import` 命令默认是否替换 | `false` |
+| `encoding` | 导出文件编码 | `utf-8` |
+| `bom` | 导出文件是否包含 BOM | `false` |
+| `exportSuffix` | 导出文件后缀 | `null` |
+
+## 编辑器支持
+
+### 智能检测优先级
+
+程序按以下顺序自动检测可用编辑器：
+
+| 优先级 | 编辑器 | 命令 | 类型 |
+|--------|--------|------|------|
+| 1 | VS Code | `code --wait` | GUI |
+| 2 | Sublime Text | `subl -w` | GUI |
+| 3 | Cursor | `cursor --wait` | GUI |
+| 4 | Zed | `zed --wait` | GUI |
+| 5 | Fleet | `fleet --wait` | GUI |
+| 6 | TextMate | `mate -w` | GUI |
+| 7 | BBEdit | `bbedit` | GUI |
+| 8 | Notepad++ | `notepad++` | GUI |
+| 9 | Notepad2 | `notepad2` | GUI |
+| 10 | Neovim | `nvim` | 终端 |
+| 11 | Vim | `vim` | 终端 |
+| 12 | GNU Nano | `nano` | 终端 |
+| 13 | Vi | `vi` | 终端 |
+| 14 | Notepad | `notepad` | GUI (Windows) |
+| 15 | TextEdit | `open -t -W -n` | GUI (macOS) |
+
+### 编辑器选择优先级
+
+1. 命令行 `--editor` 参数（最高优先级）
+2. 配置文件中的 `editor` 设置
+3. `$EDITOR` 环境变量
+4. 自动检测（上表顺序）
+
+### GUI 编辑器注意事项
+
+GUI 编辑器（如 VS Code、Sublime Text）通常需要 `--wait` 或 `-w` 参数，让命令等待编辑器关闭后再返回。
+
+```bash
+# 正确
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+MarkPdf edit --pdf book.pdf --editor "subl -w"
+
+# 错误（不会等待编辑器关闭）
+MarkPdf edit --pdf book.pdf --editor "code"
+```
+
+## 构建与发布
+
+### 发布脚本
+
+```bash
+# 优化构建（~15MB，推荐）
+./publish-optimized.sh
+
+# 最小构建（~10MB，激进裁剪）
+./publish-minimal.sh
+
+# 原始构建（~35MB，无裁剪）
+./publish.sh
+```
+
+### 体积对比
+
+| 方案 | 压缩包大小 | 说明 |
+|------|-----------|------|
+| **Minimal** | ~10 MB | 激进裁剪，体积最小 |
+| **Optimized** | ~15 MB | 平衡方案，推荐 |
+| **Original** | ~35 MB | 兼容性最好 |
+
+### 手动构建
+
+```bash
+# 单文件发布
+dotnet publish -c Release \
+    -r osx-arm64 \
+    --self-contained true \
+    -p:PublishSingleFile=true \
+    -p:PublishTrimmed=true \
+    -p:EnableCompressionInSingleFile=true \
+    -o ./output
+```
+
+支持的运行时标识符（RID）：
+- `osx-arm64` - macOS Apple Silicon
+- `osx-x64` - macOS Intel
+- `linux-x64` - Linux x64
+- `linux-arm64` - Linux ARM64
+- `win-x64` - Windows x64
+- `win-arm64` - Windows ARM64
+
+详细发布说明见 [PUBLISH.md](PUBLISH.md)。
+
+## 常见问题
+
+### Q: 编辑器无法打开或立即退出
+
+**A:** GUI 编辑器需要 `--wait` 或 `-w` 参数：
+
+```bash
+# 正确
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+
+# 错误
+MarkPdf edit --pdf book.pdf --editor "code"
+```
+
+检查编辑器是否在 PATH 中：
+```bash
+which code
+```
+
+### Q: 更改未被检测到
+
+**A:** 
+- 确保在关闭编辑器前保存文件
+- 检查书签格式是否正确（参考"书签格式"部分）
+
+### Q: 导入新书签后，旧书签仍然存在
+
+**A:** 确保使用最新版本（v1.0.0+），旧版本可能存在此问题。新版会自动替换旧书签。
+
+### Q: macOS 预览应用不自动刷新
+
+**A:** macOS 预览（Preview.app）不会监视文件变化。建议使用 [Skim](https://skim-app.sourceforge.io/)：
+
+```bash
+# 用 Skim 打开 PDF
+open -a Skim book.pdf
+
+# 编辑书签后，Skim 会自动刷新
+MarkPdf edit --pdf book.pdf
+```
+
+### Q: 如何批量处理多个 PDF？
+
+**A:** 使用 shell 循环：
+
+```bash
+for pdf in *.pdf; do
+    MarkPdf export --pdf "$pdf" --mark "${pdf%.pdf}.txt"
+done
+```
+
+## 技术栈
 
 - [.NET 10](https://dotnet.microsoft.com/)
-- [iText](https://itextpdf.com/) - 用于 Java 和 .NET 的强大 PDF 库
+- [iText](https://itextpdf.com/) - PDF 处理库
+- [System.CommandLine](https://github.com/dotnet/command-line-api) - 命令行解析
 
-## LICENSE
+## 许可证
 
-本项目基于 MIT 许可证开源。
+MIT 许可证 - 详情见 [LICENSE](LICENSE) 文件。
+
+---
+
+## 更新日志
+
+### v1.0.0
+- ✨ 初始版本发布
+- 📝 支持书签导入/导出/编辑
+- 🎯 智能编辑器检测
+- ⚙️ 配置文件支持
+- 🚀 优化构建（~15MB）

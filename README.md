@@ -1,156 +1,378 @@
-# Mark Pdf
+# MarkPdf
 
-A simple PDF table of contents editing tool, based on iText.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-## Usage
+A lightweight, cross-platform CLI tool for editing PDF bookmarks (table of contents) without external dependencies.
 
-### MarkPdf Usage Instructions
+[English](#markpdf) | [中文](README-zh.md)
 
-```
-# Export PDF bookmarks file
-MarkPdf export --pdf your_pdf_path --mark your_mark_path
+---
 
-# Import the modified PDF bookmarks file
-MarkPdf import --pdf your_pdf_path --mark your_mark_path
+## MarkPdf (English)
 
-# Import the modified PDF bookmarks file and replace the original file
-MarkPdf import --pdf your_pdf_path --mark your_mark_path --replace
+### Features
 
-# Edit bookmarks interactively (auto-detects best available editor)
-MarkPdf edit --pdf your_pdf_path
+- 🚀 **Fast & Lightweight** - Optimized binary ~15MB, no external dependencies
+- 📝 **Interactive Editing** - Edit bookmarks directly in your favorite editor
+- 🔧 **Simple Format** - Markdown-like syntax for bookmarks
+- 🖥️ **Cross-Platform** - Windows, macOS, and Linux support
+- 🎯 **Smart Editor Detection** - Auto-detects VS Code, Sublime, Vim, etc.
+- ⚙️ **Configurable** - Customizable defaults via config file
+- 🔄 **Incremental Update** - Automatically replaces old bookmarks when importing new ones
 
-# Edit with a specific editor
-MarkPdf edit --pdf your_pdf_path --editor vim
-```
+### Installation
 
-**Table of Contents File Structure**
+#### Option 1: Pre-built Binaries
 
-```
-# Preface 5
-# Table of Contents 6
-# Chapter 01 About Software Engineering Productivity 15
-## 1.1 Another Perspective on "Improving Software Engineering Productivity" 15
-## 1.2 Introduction to Jenkins 18
-## 1.3 Jenkins and DevOps 18
-# Chapter 02 Getting Started with Pipeline 20
-# Chapter 03 Pipeline Syntax Explanation 30
-```
-
-- Use `#` to indicate the heading level (one `#` for level 1, two `#` for level 2, etc.)
-- The number at the end indicates the page number
-
-### Configuration File
-
-MarkPdf supports a configuration file for setting default values:
+Download the latest release from [Releases](../../releases) and extract:
 
 ```bash
-# Initialize config file with smart defaults
-MarkPdf init
+# macOS (Apple Silicon)
+tar -xzf MarkPdf-trimmed-osx-arm64.tar.gz
+sudo cp MarkPdf-trimmed-osx-arm64/MarkPdf /usr/local/bin/
 
-# Edit config file
-MarkPdf config
+# macOS (Intel)
+tar -xzf MarkPdf-trimmed-osx-x64.tar.gz
+sudo cp MarkPdf-trimmed-osx-x64/MarkPdf /usr/local/bin/
+
+# Linux
+tar -xzf MarkPdf-trimmed-linux-x64.tar.gz
+sudo cp MarkPdf-trimmed-linux-x64/MarkPdf /usr/local/bin/
+
+# Windows
+# Extract MarkPdf-trimmed-win-x64.zip and add to PATH
 ```
 
-**Config File Location:** `~/.config/MarkPdf/config.json`
-- Windows: `%USERPROFILE%\.config\MarkPdf\config.json`
-- macOS: `~/.config/MarkPdf/config.json`
-- Linux: `~/.config/MarkPdf/config.json`
+#### Option 2: Build from Source
 
-### Smart Editor Detection
+**Requirements:**
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 
-When running `MarkPdf init` or using auto-detection, editors are checked in this priority order:
+```bash
+# Clone repository
+git clone https://github.com/yourusername/MarkPdf.git
+cd MarkPdf
 
-| Priority | Editor | Command | Detection |
-|----------|--------|---------|-----------|
-| 1 | VS Code | `code --wait` | Command available |
-| 2 | Sublime Text | `subl -w` | Command available |
-| 3 | Cursor | `cursor --wait` | Command available |
-| 4 | Zed | `zed --wait` | Command available |
-| 5 | Fleet | `fleet --wait` | Command available |
-| 6 | TextMate | `mate -w` | Command available |
-| 7 | BBEdit | `bbedit` | Command available |
-| 8 | Notepad++ | `notepad++` | Windows only, path check |
-| 9 | Notepad2 | `notepad2` | Windows only, path check |
-| 10 | Neovim | `nvim` | Command available |
-| 11 | Vim | `vim` | Command available |
-| 12 | GNU Nano | `nano` | Command available |
-| 13 | Vi | `vi` | Command available |
-| 14 | Notepad | `notepad` | Windows default |
-| 15 | TextEdit | `open -t -W -n` | macOS default |
-
-**Priority (high to low):**
-1. Command line `--editor` argument
-2. Configuration file `editor` setting
-3. `$EDITOR` environment variable
-4. Auto-detected from priority list above
-
-### Interactive Edit Mode
-
-The `edit` command opens your preferred editor:
-
-1. Run `MarkPdf edit --pdf your.pdf`
-2. The best available editor opens with current bookmarks
-3. Edit using the format shown above
-4. Save and close the editor
-5. PDF is automatically updated
-
-### Other Smart Defaults
-
-| Setting | Windows | macOS | Linux |
-|---------|---------|-------|-------|
-| **BOM** | `true` (Notepad compatible) | `false` | `false` |
-| **Encoding** | `utf-8` | `utf-8` | `utf-8` |
-| **Edit Replace** | `true` | `true` | `true` |
-| **Import Replace** | `false` | `false` | `false` |
-
-### How to Build & Publish
-
-**Quick Start:**
-
-```shell
-# Recommended: Build optimized version (~15MB)
+# Build for current platform
 ./publish-optimized.sh
 
-# Minimal size (~10MB)
-./publish-minimal.sh
-
-# Or manually
+# Or build manually
 dotnet publish -c Release -o ./output
 ```
 
-**Download Size Comparison:**
-
-| Version | Size | Command |
-|---------|------|---------|
-| **Minimal** | ~10 MB | `./publish-minimal.sh` |
-| **Optimized** | ~15 MB | `./publish-optimized.sh` (Recommended) |
-| **Original** | ~35 MB | `./publish.sh` |
-
-**Find the executable:**
-
-After publishing:
-```
-artifacts/MarkPdf-trimmed-osx-arm64/MarkPdf      # macOS ARM64
-artifacts/MarkPdf-trimmed-linux-x64/MarkPdf      # Linux x64
-artifacts/MarkPdf-trimmed-win-x64/MarkPdf.exe    # Windows x64
-```
-
-**Quick Install:**
+### Quick Start
 
 ```bash
-# macOS/Linux
-tar -xzf MarkPdf-trimmed-osx-arm64.tar.gz
-sudo cp MarkPdf-trimmed-osx-arm64/MarkPdf /usr/local/bin/
-MarkPdf --help
+# Initialize configuration
+MarkPdf init
+
+# Export existing bookmarks
+MarkPdf export --pdf book.pdf --mark bookmarks.txt
+
+# Edit bookmarks interactively (opens your default editor)
+MarkPdf edit --pdf book.pdf
+
+# Import bookmarks from file
+MarkPdf import --pdf book.pdf --mark bookmarks.txt --replace
 ```
 
-See [PUBLISH.md](PUBLISH.md) for detailed instructions.
+### Bookmark Format
 
-## Dependencies
+Bookmarks are stored in a simple text format:
+
+```text
+# Chapter 1 Introduction 1
+## 1.1 Overview 2
+## 1.2 Background 3
+# Chapter 2 Method 5
+## 2.1 Design 6
+### 2.1.1 Phase 1 7
+### 2.1.2 Phase 2 8
+## 2.2 Implementation 10
+# Chapter 3 Conclusion 15
+```
+
+**Syntax:**
+- `#` = Level 1 heading (chapter)
+- `##` = Level 2 heading (section)
+- `###` = Level 3 heading (subsection)
+- `####` = Level 4 heading (and so on)
+- Number at the end = Page number
+
+**Notes:**
+- One bookmark per line
+- Page number must be a positive integer
+- Space between title and page number
+
+### Commands
+
+#### `init` - Initialize Configuration
+
+```bash
+MarkPdf init
+```
+
+Creates a configuration file at `~/.config/MarkPdf/config.json` with smart defaults.
+
+#### `config` - Edit Configuration
+
+```bash
+MarkPdf config
+```
+
+Opens the configuration file in your default editor.
+
+#### `export` - Export Bookmarks
+
+```bash
+MarkPdf export --pdf <pdf_path> --mark <mark_path>
+```
+
+Exports all bookmarks from a PDF to a text file.
+
+**Example:**
+```bash
+MarkPdf export --pdf book.pdf --mark book-marks.txt
+```
+
+#### `import` - Import Bookmarks
+
+```bash
+MarkPdf import --pdf <pdf_path> --mark <mark_path> [--replace]
+```
+
+Imports bookmarks from a text file into a PDF.
+
+**Examples:**
+```bash
+# Create new file (default)
+MarkPdf import --pdf book.pdf --mark new-marks.txt
+# Output: book_new.pdf
+
+# Replace original file
+MarkPdf import --pdf book.pdf --mark new-marks.txt --replace
+```
+
+Options:
+- `--replace` (-r): Replace the original PDF instead of creating a new one
+
+#### `edit` - Interactive Editing
+
+```bash
+MarkPdf edit --pdf <pdf_path> [--editor <editor>]
+```
+
+Opens the current bookmarks (or a template) in your default editor. Save and close to apply changes.
+
+**Examples:**
+```bash
+# Use default editor
+MarkPdf edit --pdf book.pdf
+
+# Specify editor
+MarkPdf edit --pdf book.pdf --editor "vim"
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+MarkPdf edit --pdf book.pdf --editor "subl -w"
+```
+
+**Workflow:**
+1. Run command, program extracts current bookmarks (or shows template if none)
+2. Modify bookmarks in editor
+3. Save and close editor
+4. Program automatically updates PDF bookmarks
+
+### Configuration
+
+#### Config File Location
+
+| Platform | Path |
+|----------|------|
+| Windows | `%USERPROFILE%\.config\MarkPdf\config.json` |
+| macOS | `~/.config/MarkPdf/config.json` |
+| Linux | `~/.config/MarkPdf/config.json` |
+
+#### Config Options
+
+```json
+{
+  "editor": "code --wait",
+  "editReplace": true,
+  "importReplace": false,
+  "encoding": "utf-8",
+  "bom": false,
+  "exportSuffix": null
+}
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `editor` | Default editor command | Auto-detect |
+| `editReplace` | Auto-replace PDF when editing | `true` |
+| `importReplace` | Default replace behavior for import | `false` |
+| `encoding` | Text file encoding | `utf-8` |
+| `bom` | Include BOM in exported files | `false` |
+| `exportSuffix` | Suffix for exported bookmark files | `null` |
+
+### Editor Support
+
+#### Smart Detection Priority
+
+The program automatically detects available editors in this order:
+
+| Priority | Editor | Command | Type |
+|----------|--------|---------|------|
+| 1 | VS Code | `code --wait` | GUI |
+| 2 | Sublime Text | `subl -w` | GUI |
+| 3 | Cursor | `cursor --wait` | GUI |
+| 4 | Zed | `zed --wait` | GUI |
+| 5 | Fleet | `fleet --wait` | GUI |
+| 6 | TextMate | `mate -w` | GUI |
+| 7 | BBEdit | `bbedit` | GUI |
+| 8 | Notepad++ | `notepad++` | GUI |
+| 9 | Notepad2 | `notepad2` | GUI |
+| 10 | Neovim | `nvim` | Terminal |
+| 11 | Vim | `vim` | Terminal |
+| 12 | GNU Nano | `nano` | Terminal |
+| 13 | Vi | `vi` | Terminal |
+| 14 | Notepad | `notepad` | GUI (Windows) |
+| 15 | TextEdit | `open -t -W -n` | GUI (macOS) |
+
+#### Editor Selection Priority
+
+1. Command line `--editor` argument (highest priority)
+2. Configuration file `editor` setting
+3. `$EDITOR` environment variable
+4. Auto-detection (order in table above)
+
+#### GUI Editor Notes
+
+GUI editors (like VS Code, Sublime Text) usually need `--wait` or `-w` flag to wait for the editor to close before returning.
+
+```bash
+# Correct
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+MarkPdf edit --pdf book.pdf --editor "subl -w"
+
+# Incorrect (won't wait for editor to close)
+MarkPdf edit --pdf book.pdf --editor "code"
+```
+
+### Building & Publishing
+
+#### Publish Scripts
+
+```bash
+# Optimized build (~15MB, recommended)
+./publish-optimized.sh
+
+# Minimal build (~10MB, aggressive trimming)
+./publish-minimal.sh
+
+# Original build (~35MB, no trimming)
+./publish.sh
+```
+
+#### Size Comparison
+
+| Option | Package Size | Description |
+|--------|--------------|-------------|
+| **Minimal** | ~10 MB | Aggressive trimming, smallest size |
+| **Optimized** | ~15 MB | Balanced, recommended |
+| **Original** | ~35 MB | Best compatibility |
+
+#### Manual Build
+
+```bash
+# Single file publish
+dotnet publish -c Release \
+    -r osx-arm64 \
+    --self-contained true \
+    -p:PublishSingleFile=true \
+    -p:PublishTrimmed=true \
+    -p:EnableCompressionInSingleFile=true \
+    -o ./output
+```
+
+Supported Runtime Identifiers (RID):
+- `osx-arm64` - macOS Apple Silicon
+- `osx-x64` - macOS Intel
+- `linux-x64` - Linux x64
+- `linux-arm64` - Linux ARM64
+- `win-x64` - Windows x64
+- `win-arm64` - Windows ARM64
+
+See [PUBLISH.md](PUBLISH.md) for detailed distribution instructions.
+
+### Troubleshooting
+
+**Q: Editor doesn't open or exits immediately**
+
+A: GUI editors need `--wait` or `-w` flag:
+
+```bash
+# Correct
+MarkPdf edit --pdf book.pdf --editor "code --wait"
+
+# Incorrect
+MarkPdf edit --pdf book.pdf --editor "code"
+```
+
+Check editor is in PATH:
+```bash
+which code
+```
+
+**Q: Changes not detected**
+
+A: 
+- Ensure you save the file before closing the editor
+- Check that bookmarks format is correct (see "Bookmark Format" section)
+
+**Q: Old bookmarks still exist after importing new ones**
+
+A: Ensure you're using the latest version (v1.0.0+). Older versions may have this issue. New versions automatically replace old bookmarks.
+
+**Q: PDF preview doesn't refresh**
+
+A: macOS Preview doesn't auto-refresh. Use [Skim](https://skim-app.sourceforge.io/) for auto-refresh support:
+
+```bash
+# Open PDF with Skim
+open -a Skim book.pdf
+
+# Edit bookmarks, Skim will auto-refresh
+MarkPdf edit --pdf book.pdf
+```
+
+**Q: How to batch process multiple PDFs?**
+
+A: Use shell loop:
+
+```bash
+for pdf in *.pdf; do
+    MarkPdf export --pdf "$pdf" --mark "${pdf%.pdf}.txt"
+done
+```
+
+### Tech Stack
 
 - [.NET 10](https://dotnet.microsoft.com/)
-- [iText](https://itextpdf.com/) - A powerful PDF library for Java and .NET
+- [iText](https://itextpdf.com/) - PDF processing library
+- [System.CommandLine](https://github.com/dotnet/command-line-api) - Command line parsing
 
-## LICENSE
+### License
 
-This project is open source under the MIT License.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## Changelog
+
+### v1.0.0
+- ✨ Initial release
+- 📝 Support bookmark import/export/edit
+- 🎯 Smart editor detection
+- ⚙️ Configuration file support
+- 🚀 Optimized build (~15MB)
