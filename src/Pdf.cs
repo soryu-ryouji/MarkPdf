@@ -94,7 +94,7 @@ class Pdf
 
         // 启动编辑器
         var editedContent = PdfEditor.EditBookmarks(pdfFile, initialContent, editor);
-        
+
         if (editedContent == null)
         {
             Console.WriteLine("Edit cancelled or no changes made.");
@@ -113,7 +113,7 @@ class Pdf
 
         // 直接替换原 PDF
         var tempPdfPath = Path.Combine(Path.GetTempPath(), $"markpdf_edit_{Guid.NewGuid()}.pdf");
-        
+
         try
         {
             using (var reader = new PdfReader(pdfFile))
@@ -198,17 +198,37 @@ class Pdf
     }
 
     /// <summary>
+    /// 清除所有书签
+    /// </summary>
+    private static void ClearBookmarks(PdfOutline rootOutline)
+    {
+        // 获取所有子书签并移除
+        var children = rootOutline.GetAllChildren().ToList();
+        foreach (var child in children)
+        {
+            child.RemoveOutline();
+        }
+    }
+
+    /// <summary>
     /// 向 PDF 添加书签
     /// </summary>
     private static void AddBookmarks(PdfDocument pdfDoc, List<PdfMark> marks)
     {
+        // 获取根大纲并清除所有现有书签
+        var rootOutline = pdfDoc.GetOutlines(true);
+        ClearBookmarks(rootOutline);
+
         if (marks.Count == 0) return;
+
+        // 重新获取根大纲（清除后需要重新获取）
+        rootOutline = pdfDoc.GetOutlines(true);
 
         // 使用栈来管理父书签，索引 0 不使用（层级从 1 开始）
         var outlineStack = new PdfOutline?[marks.Max(m => m.Level) + 1];
-        
-        // 获取根大纲
-        outlineStack[0] = pdfDoc.GetOutlines(true);
+
+        // 设置根大纲
+        outlineStack[0] = rootOutline;
 
         foreach (var mark in marks)
         {
