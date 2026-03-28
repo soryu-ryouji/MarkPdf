@@ -1,19 +1,17 @@
-using System.Diagnostics;
-using System.Text;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Navigation;
 
 namespace MarkPdf;
 
 class Pdf
 {
-    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
-
     public static void ExportMarks(string pdfFile, string markFile)
     {
-        var infoText = RunPdftkDump(pdfFile);
-        var marksText = Bookmark.ExtractTkMark(infoText);
-        var marks = Bookmark.ParseTkMark(marksText);
+        using var reader = new PdfReader(pdfFile);
+        using var pdfDoc = new PdfDocument(reader);
 
-        File.WriteAllLines(markFile, marks.Select(m => m.ToSimpleMark()), Utf8NoBom);
+        var marks = GetBookmarks(pdfDoc);
+        File.WriteAllLines(markFile, marks.Select(m => m.ToSimpleMark()).ToArray());
         Console.WriteLine($"Export {marks.Count} bookmarks to: {markFile}");
     }
 
@@ -24,26 +22,28 @@ class Pdf
             throw new FileNotFoundException("mark file not found", markFile);
         }
 
-        var markText = File.ReadAllText(markFile, Encoding.UTF8);
+        var markText = File.ReadAllText(markFile);
         var marks = Bookmark.ParseSimpleMark(markText);
         Console.WriteLine($"Parsed {marks.Count} bookmarks from mark file.");
-
-        var infoText = RunPdftkDump(pdfFile);
-        var cleaned = Bookmark.RemoveTkMarkFromPdfInfo(infoText);
-        var newInfo = cleaned + Bookmark.ToTkMark(marks);
 
         string outPdfPath;
         if (replace)
         {
-            // 先输出到临时文件，再替换原文件
-            outPdfPath = Path.Combine(Path.GetTempPath(), $"pdftk_replace_{Guid.NewGuid()}.pdf");
+            outPdfPath = Path.Combine(Path.GetTempPath(), $"markpdf_replace_{Guid.NewGuid()}.pdf");
         }
         else
         {
             outPdfPath = GetOutputPath(pdfFile);
         }
 
-        RunPdftkUpdate(pdfFile, newInfo, outPdfPath);
+        // 读取原始 PDF 并添加书签
+        using (var reader = new PdfReader(pdfFile))
+        using (var writer = new PdfWriter(outPdfPath))
+        using (var pdfDoc = new PdfDocument(reader, writer))
+        {
+            // 添加新书签（会自动替换原有书签）
+            AddBookmarks(pdfDoc, marks);
+        }
 
         if (!File.Exists(outPdfPath))
         {
@@ -62,72 +62,104 @@ class Pdf
         }
     }
 
-    private static string RunPdftkDump(string pdfFile)
+    /// <summary>
+    /// 获取 PDF 中的所有书签
+    /// </summary>
+    private static List<PdfMark> GetBookmarks(PdfDocument pdfDoc)
     {
-        return RunPdftkWithTempFiles(pdfFile, (tempPdf, tempOut) =>
+        var marks = new List<PdfMark>();
+        var rootOutline = pdfDoc.GetOutlines(false);
+
+        if (rootOutline != null)
         {
-            RunPdftk($"\"{tempPdf}\" dump_data_utf8 output \"{tempOut}\"");
-            return File.Exists(tempOut) ? File.ReadAllText(tempOut, Encoding.UTF8) :
-                throw new IOException("Failed to export PDF info.");
-        });
+            ExtractBookmarksRecursive(rootOutline, marks, 0, pdfDoc);
+        }
+
+        return marks;
     }
 
-    private static void RunPdftkUpdate(string pdfFile, string infoContent, string outPdf)
+    /// <summary>
+    /// 递归提取书签
+    /// </summary>
+    private static void ExtractBookmarksRecursive(PdfOutline outline, List<PdfMark> marks, int parentLevel, PdfDocument pdfDoc)
     {
-        RunPdftkWithTempFiles(pdfFile, (tempPdf, tempOut) =>
-        {
-            var tempInfo = Path.Combine(Path.GetTempPath(), $"pdftk_info_{Guid.NewGuid()}.info");
-            try
-            {
-                File.WriteAllText(tempInfo, infoContent, Utf8NoBom);
-                RunPdftk($"\"{tempPdf}\" update_info_utf8 \"{tempInfo}\" output \"{tempOut}\"");
+        int currentLevel = parentLevel + 1;
 
-                if (File.Exists(tempOut))
+        foreach (var child in outline.GetAllChildren())
+        {
+            var title = child.GetTitle() ?? "";
+            var page = GetOutlinePageNumber(child, pdfDoc);
+
+            marks.Add(new PdfMark(title, currentLevel, page));
+
+            // 递归处理子书签
+            ExtractBookmarksRecursive(child, marks, currentLevel, pdfDoc);
+        }
+    }
+
+    /// <summary>
+    /// 获取书签指向的页码
+    /// </summary>
+    private static int GetOutlinePageNumber(PdfOutline outline, PdfDocument pdfDoc)
+    {
+        var dest = outline.GetDestination();
+        if (dest is PdfExplicitDestination explicitDest)
+        {
+            var pageRef = explicitDest.GetPdfObject();
+            if (pageRef is PdfArray destArray && destArray.Size() > 0)
+            {
+                var pageObj = destArray.Get(0);
+                if (pageObj is PdfDictionary pageDict)
                 {
-                    File.Copy(tempOut, outPdf, true);
+                    for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                    {
+                        if (pdfDoc.GetPage(i).GetPdfObject() == pageDict)
+                        {
+                            return i;
+                        }
+                    }
                 }
-                return true;
             }
-            finally
+        }
+
+        // 如果无法解析，返回 1
+        return 1;
+    }
+
+    /// <summary>
+    /// 向 PDF 添加书签
+    /// </summary>
+    private static void AddBookmarks(PdfDocument pdfDoc, List<PdfMark> marks)
+    {
+        if (marks.Count == 0) return;
+
+        // 使用栈来管理父书签，索引 0 不使用（层级从 1 开始）
+        var outlineStack = new PdfOutline?[marks.Max(m => m.Level) + 1];
+
+        // 获取根大纲
+        outlineStack[0] = pdfDoc.GetOutlines(true);
+
+        foreach (var mark in marks)
+        {
+            var parentOutline = outlineStack[mark.Level - 1];
+            if (parentOutline == null) continue;
+
+            // 创建新书签
+            var newOutline = parentOutline.AddOutline(mark.Title);
+
+            // 设置目标页
+            if (mark.Page >= 1 && mark.Page <= pdfDoc.GetNumberOfPages())
             {
-                TryDelete(tempInfo);
+                var page = pdfDoc.GetPage(mark.Page);
+                var dest = PdfExplicitDestination.CreateFit(page);
+                newOutline.AddDestination(dest);
             }
-        });
-    }
 
-    private static T RunPdftkWithTempFiles<T>(string pdfFile, Func<string, string, T> action)
-    {
-        var tempPdf = Path.Combine(Path.GetTempPath(), $"pdftk_in_{Guid.NewGuid()}.pdf");
-        var tempOut = Path.Combine(Path.GetTempPath(), $"pdftk_out_{Guid.NewGuid()}");
-
-        try
-        {
-            File.Copy(pdfFile, tempPdf, true);
-            return action(tempPdf, tempOut);
-        }
-        finally
-        {
-            TryDelete(tempPdf);
-            TryDelete(tempOut);
-        }
-    }
-
-    private static void RunPdftk(string arguments)
-    {
-        using var p = new Process();
-        p.StartInfo.FileName = "pdftk";
-        p.StartInfo.Arguments = arguments;
-        p.StartInfo.CreateNoWindow = true;
-        p.StartInfo.UseShellExecute = false;
-        p.StartInfo.RedirectStandardError = true;
-        p.Start();
-
-        var error = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        if (p.ExitCode != 0)
-        {
-            throw new IOException($"pdftk failed (exit code {p.ExitCode}): {error}");
+            // 设置当前书签作为下一级的父书签
+            if (mark.Level < outlineStack.Length)
+            {
+                outlineStack[mark.Level] = newOutline;
+            }
         }
     }
 
@@ -136,10 +168,5 @@ class Pdf
         var dir = Path.GetDirectoryName(pdfFile) ?? ".";
         var name = Path.GetFileNameWithoutExtension(pdfFile);
         return Path.Combine(dir, $"{name}_new.pdf");
-    }
-
-    private static void TryDelete(string path)
-    {
-        try { if (File.Exists(path)) File.Delete(path); } catch { }
     }
 }

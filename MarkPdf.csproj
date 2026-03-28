@@ -1,16 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
+    <!-- 禁用 AOT 因为 iText 使用了依赖注入，与 AOT 不兼容 -->
+    <PublishAot>false</PublishAot>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0" />
+    <PackageReference Include="itext" Version="9.1.0" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.1.0" />
   </ItemGroup>
 
 </Project>
