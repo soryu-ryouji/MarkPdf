@@ -5,10 +5,36 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- 禁用 AOT 因为 iText 使用了依赖注入，与 AOT 不兼容 -->
+    <!-- 禁用 AOT 因为 iText 使用了依赖注入 -->
     <PublishAot>false</PublishAot>
+    <!-- 自包含发布 -->
     <SelfContained>true</SelfContained>
+    <!-- 单文件发布 -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- 启用裁剪（减小体积的关键） -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- 裁剪模式：partial 更安全，full 更激进 -->
+    <TrimMode>partial</TrimMode>
+    <!-- 压缩单文件 -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- 包含原生库到单文件中 -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- 不生成 apphost（Windows 不需要 .exe 包装器） -->
+    <UseAppHost>true</UseAppHost>
+    <!-- 程序集属性 -->
+    <AssemblyTitle>MarkPdf</AssemblyTitle>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 保留 iText 相关的程序集不被裁剪（因为它们使用反射） -->
+    <TrimmerRootAssembly Include="itext.kernel" />
+    <TrimmerRootAssembly Include="itext.io" />
+    <TrimmerRootAssembly Include="itext.commons" />
+    <TrimmerRootAssembly Include="itext.bouncy-castle-adapter" />
+    <!-- 保留入口点 -->
+    <TrimmerRootAssembly Include="MarkPdf" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0" />

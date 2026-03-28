@@ -63,6 +63,77 @@ class Pdf
     }
 
     /// <summary>
+    /// 交互式编辑 PDF 书签
+    /// </summary>
+    public static void EditBookmarks(string pdfFile, string? editor = null)
+    {
+        if (!File.Exists(pdfFile))
+        {
+            throw new FileNotFoundException("PDF file not found", pdfFile);
+        }
+
+        // 获取现有书签
+        string initialContent;
+        using (var reader = new PdfReader(pdfFile))
+        using (var pdfDoc = new PdfDocument(reader))
+        {
+            var marks = GetBookmarks(pdfDoc);
+            if (marks.Count == 0)
+            {
+                // 如果没有书签，提供模板
+                initialContent = $"# Example Chapter 1\n## Example Section 1.1 1\n# Example Chapter 2 5\n";
+                initialContent += $"\n# Total pages: {pdfDoc.GetNumberOfPages()}\n";
+                initialContent += "# Edit the bookmarks above and save to apply changes.\n";
+                initialContent += "# Format: # Title PageNumber (use # for level 1, ## for level 2, etc.)\n";
+            }
+            else
+            {
+                initialContent = string.Join("\n", marks.Select(m => m.ToSimpleMark()));
+            }
+        }
+
+        // 启动编辑器
+        var editedContent = PdfEditor.EditBookmarks(pdfFile, initialContent, editor);
+        
+        if (editedContent == null)
+        {
+            Console.WriteLine("Edit cancelled or no changes made.");
+            return;
+        }
+
+        // 解析并验证书签
+        var newMarks = Bookmark.ParseSimpleMark(editedContent);
+        Console.WriteLine($"Parsed {newMarks.Count} bookmarks from edited content.");
+
+        if (newMarks.Count == 0)
+        {
+            Console.WriteLine("Warning: No valid bookmarks found in edited content. Aborting.");
+            return;
+        }
+
+        // 直接替换原 PDF
+        var tempPdfPath = Path.Combine(Path.GetTempPath(), $"markpdf_edit_{Guid.NewGuid()}.pdf");
+        
+        try
+        {
+            using (var reader = new PdfReader(pdfFile))
+            using (var writer = new PdfWriter(tempPdfPath))
+            using (var pdfDoc = new PdfDocument(reader, writer))
+            {
+                AddBookmarks(pdfDoc, newMarks);
+            }
+
+            // 替换原文件
+            File.Copy(tempPdfPath, pdfFile, true);
+            Console.WriteLine($"Successfully updated bookmarks in: {pdfFile}");
+        }
+        finally
+        {
+            TryDelete(tempPdfPath);
+        }
+    }
+
+    /// <summary>
     /// 获取 PDF 中的所有书签
     /// </summary>
     private static List<PdfMark> GetBookmarks(PdfDocument pdfDoc)
@@ -135,7 +206,7 @@ class Pdf
 
         // 使用栈来管理父书签，索引 0 不使用（层级从 1 开始）
         var outlineStack = new PdfOutline?[marks.Max(m => m.Level) + 1];
-
+        
         // 获取根大纲
         outlineStack[0] = pdfDoc.GetOutlines(true);
 
@@ -168,5 +239,10 @@ class Pdf
         var dir = Path.GetDirectoryName(pdfFile) ?? ".";
         var name = Path.GetFileNameWithoutExtension(pdfFile);
         return Path.Combine(dir, $"{name}_new.pdf");
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { }
     }
 }
