@@ -2,5 +2,9 @@ bin/
 obj/
 
 artifacts/
+publish/
 
 .DS_Store
+
+.vscode/
+.vs/
