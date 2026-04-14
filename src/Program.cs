@@ -41,6 +41,12 @@ class Program
             Required = false,
         };
 
+        var watchOption = new Option<bool>("--watch", "-w")
+        {
+            Description = "Watch mode: auto-save PDF when bookmark file changes",
+            Required = false,
+        };
+
         // Init config command
         var initCommand = new Command("init", "Initialize configuration file");
 
@@ -64,6 +70,7 @@ class Program
         {
             pdfOption,
             editorOption,
+            watchOption,
         };
 
         initCommand.SetAction((_) =>
@@ -92,13 +99,13 @@ class Program
             var pdfPath = importArgs.GetValue<string>(pdfOption);
             var markPath = importArgs.GetValue<string>(markOption);
             var replace = importArgs.GetValue<bool>(replaceOption);
-            
+
             // 如果命令行没有指定 --replace，使用配置文件的默认值
             if (!replace && !args.Contains("--replace") && !args.Contains("-r"))
             {
                 replace = Config.ImportReplace;
             }
-            
+
             Pdf.ImportSimpleMarkText(pdfPath!, markPath!, replace);
         });
 
@@ -113,11 +120,21 @@ class Program
         {
             var pdfPath = editArgs.GetValue<string>(pdfOption);
             var editor = editArgs.GetValue<string>(editorOption);
-            
+            var watch = editArgs.GetValue<bool>(watchOption);
+
             // 优先使用命令行指定的编辑器，其次使用配置文件
             editor ??= Config.DefaultEditor;
-            
-            Pdf.EditBookmarks(pdfPath!, editor);
+
+            if (watch)
+            {
+                // 监听模式
+                Pdf.EditBookmarksWatchMode(pdfPath!, editor);
+            }
+            else
+            {
+                // 普通模式
+                Pdf.EditBookmarks(pdfPath!, editor);
+            }
         });
 
         rootCommand.Add(initCommand);

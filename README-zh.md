@@ -14,6 +14,7 @@
 
 - 🚀 **快速轻量** - 优化后仅 ~15MB，无外部依赖
 - 📝 **交互式编辑** - 在喜爱的编辑器中直接编辑书签
+- 👁️ **监听模式** - 保存书签文件时自动更新 PDF（无需重启程序）
 - 🔧 **简单格式** - 类 Markdown 的书签语法
 - 🖥️ **跨平台** - 支持 Windows、macOS 和 Linux
 - 🎯 **智能编辑器检测** - 自动检测 VS Code、Sublime、Vim 等
@@ -158,7 +159,7 @@ MarkPdf import --pdf book.pdf --mark new-marks.txt --replace
 在默认编辑器中打开当前书签进行编辑：
 
 ```bash
-MarkPdf edit --pdf <PDF路径> [--editor <编辑器命令>]
+MarkPdf edit --pdf <PDF路径> [--editor <编辑器命令>] [--watch]
 
 # 使用默认编辑器
 MarkPdf edit --pdf book.pdf
@@ -167,13 +168,34 @@ MarkPdf edit --pdf book.pdf
 MarkPdf edit --pdf book.pdf --editor "vim"
 MarkPdf edit --pdf book.pdf --editor "code --wait"
 MarkPdf edit --pdf book.pdf --editor "subl -w"
+
+# 监听模式：保存书签文件时自动更新 PDF
+MarkPdf edit --pdf book.pdf --watch
+MarkPdf edit --pdf book.pdf --editor "code --wait" --watch
 ```
 
-**工作流程：**
+**标准工作流程：**
 1. 运行命令，程序提取当前书签（如果没有则显示模板）
 2. 在编辑器中修改书签
 3. 保存并关闭编辑器
 4. 程序自动更新 PDF 书签
+
+**监听模式工作流程：**
+1. 使用 `--watch` 参数运行命令
+2. 编辑器打开书签文件
+3. 编辑并保存文件 → PDF 自动更新
+4. 继续编辑和保存 → PDF 每次都会更新
+5. 在终端按 Enter 键停止监听并退出
+
+**监听模式优点：**
+- 无需为每次更改重新启动 MarkPdf
+- 即时反馈：立即看到 PDF 更新
+- 非常适合微调书签结构
+- 智能保存：仅当书签内容真正改变时才更新 PDF
+
+**监听模式说明：**
+- GUI 编辑器正常打开
+- 终端编辑器（vim、nvim、nano）自动在新终端窗口中打开
 
 ## 配置文件
 

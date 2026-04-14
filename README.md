@@ -16,6 +16,7 @@ A lightweight, cross-platform CLI tool for editing PDF bookmarks (table of conte
 
 - 🚀 **Fast & Lightweight** - Optimized binary ~15MB, no external dependencies
 - 📝 **Interactive Editing** - Edit bookmarks directly in your favorite editor
+- 👁️ **Watch Mode** - Auto-save PDF when bookmark file changes (no need to restart)
 - 🔧 **Simple Format** - Markdown-like syntax for bookmarks
 - 🖥️ **Cross-Platform** - Windows, macOS, and Linux support
 - 🎯 **Smart Editor Detection** - Auto-detects VS Code, Sublime, Vim, etc.
@@ -161,7 +162,7 @@ Options:
 #### `edit` - Interactive Editing
 
 ```bash
-MarkPdf edit --pdf <pdf_path> [--editor <editor>]
+MarkPdf edit --pdf <pdf_path> [--editor <editor>] [--watch]
 ```
 
 Opens the current bookmarks (or a template) in your default editor. Save and close to apply changes.
@@ -175,13 +176,34 @@ MarkPdf edit --pdf book.pdf
 MarkPdf edit --pdf book.pdf --editor "vim"
 MarkPdf edit --pdf book.pdf --editor "code --wait"
 MarkPdf edit --pdf book.pdf --editor "subl -w"
+
+# Watch mode: auto-save PDF when bookmark file changes
+MarkPdf edit --pdf book.pdf --watch
+MarkPdf edit --pdf book.pdf --editor "code --wait" --watch
 ```
 
-**Workflow:**
+**Standard Workflow:**
 1. Run command, program extracts current bookmarks (or shows template if none)
 2. Modify bookmarks in editor
 3. Save and close editor
 4. Program automatically updates PDF bookmarks
+
+**Watch Mode Workflow:**
+1. Run command with `--watch` flag
+2. Editor opens with bookmark file
+3. Edit and save the file → PDF updates automatically
+4. Continue editing and saving → PDF updates each time
+5. Press Enter in terminal to stop watching and exit
+
+**Watch Mode Benefits:**
+- No need to restart MarkPdf for each change
+- Instant feedback: see PDF updates immediately
+- Perfect for fine-tuning bookmark structure
+- Smart save: PDF is only updated when bookmark content actually changes
+
+**Watch Mode Notes:**
+- GUI editors open normally
+- Terminal editors (vim, nvim, nano) automatically open in a new terminal window
 
 ### Configuration
 

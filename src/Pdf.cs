@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Navigation;
 
@@ -134,6 +136,197 @@ class Pdf
     }
 
     /// <summary>
+    /// 已知终端编辑器列表
+    /// </summary>
+    private static readonly HashSet<string> TerminalEditors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "nvim", "vim", "vi", "nano", "emacs", "micro", "ne"
+    };
+
+    /// <summary>
+    /// 检查编辑器是否是终端编辑器
+    /// </summary>
+    private static bool IsTerminalEditor(string? editorCommand)
+    {
+        if (string.IsNullOrEmpty(editorCommand))
+            return false;
+
+        // 提取命令名（去掉参数和路径）
+        var commandName = editorCommand.Trim();
+        var spaceIndex = commandName.IndexOf(' ');
+        if (spaceIndex > 0)
+        {
+            commandName = commandName.Substring(0, spaceIndex);
+        }
+
+        // 去掉路径，只保留文件名
+        var fileName = Path.GetFileNameWithoutExtension(commandName);
+
+        return TerminalEditors.Contains(fileName);
+    }
+
+    /// <summary>
+    /// 监听模式编辑 PDF 书签 - 保存时自动更新 PDF
+    /// </summary>
+    public static void EditBookmarksWatchMode(string pdfFile, string? editor = null)
+    {
+        if (!File.Exists(pdfFile))
+        {
+            throw new FileNotFoundException("PDF file not found", pdfFile);
+        }
+
+        // 检查是否是终端编辑器
+        if (IsTerminalEditor(editor))
+        {
+            Console.WriteLine("Error: Watch mode is not supported for terminal editors (vim, nvim, nano, etc.).");
+            Console.WriteLine();
+            Console.WriteLine("Terminal editors block the terminal and cannot be used with watch mode.");
+            Console.WriteLine("Please use a GUI editor instead:");
+            Console.WriteLine();
+            Console.WriteLine("  MarkPdf edit --pdf book.pdf --editor \"code --wait\" --watch");
+            Console.WriteLine("  MarkPdf edit --pdf book.pdf --editor \"subl -w\" --watch");
+            Console.WriteLine();
+            Console.WriteLine("Or use standard edit mode without --watch:");
+            Console.WriteLine();
+            Console.WriteLine($"  MarkPdf edit --pdf \"{pdfFile}\" --editor \"{editor}\"");
+            return;
+        }
+
+        // 创建临时文件
+        var tempFile = Path.Combine(Path.GetTempPath(), $"markpdf_watch_{Guid.NewGuid()}.txt");
+
+        try
+        {
+            // 获取现有书签作为初始内容
+            string initialContent;
+            using (var reader = new PdfReader(pdfFile))
+            using (var pdfDoc = new PdfDocument(reader))
+            {
+                var marks = GetBookmarks(pdfDoc);
+                if (marks.Count == 0)
+                {
+                    initialContent = $"# Example Chapter 1\n## Example Section 1.1 1\n# Example Chapter 2 5\n";
+                    initialContent += $"\n# Total pages: {pdfDoc.GetNumberOfPages()}\n";
+                    initialContent += "# Edit the bookmarks above and save to apply changes.\n";
+                    initialContent += "# Format: # Title PageNumber (use # for level 1, ## for level 2, etc.)\n";
+                }
+                else
+                {
+                    initialContent = string.Join("\n", marks.Select(m => m.ToSimpleMark()));
+                }
+            }
+
+            File.WriteAllText(tempFile, initialContent);
+
+            // 启动编辑器（不等待）
+            var editorInfo = PdfEditor.GetEditorInfo(editor);
+            Console.WriteLine($"Starting editor in watch mode: {editorInfo.Name}");
+            Console.WriteLine($"Editing: {pdfFile}");
+            Console.WriteLine($"Temporary file: {tempFile}");
+            Console.WriteLine();
+            Console.WriteLine("Watch mode is active. The PDF will be updated automatically when you save the bookmark file.");
+            Console.WriteLine("Press Enter to stop watching and exit.");
+            Console.WriteLine();
+
+            using var process = PdfEditor.StartEditor(editorInfo, tempFile);
+
+            // 设置文件监听器
+            var fileWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(tempFile)!,
+                Filter = Path.GetFileName(tempFile),
+                NotifyFilter = NotifyFilters.LastWrite
+            };
+
+            // 防抖处理：避免多次保存触发多次更新
+            var lastWriteTime = DateTime.MinValue;
+            var debounceInterval = TimeSpan.FromMilliseconds(500);
+            
+            // 保存上一次的书签内容哈希，用于对比是否真的改变了
+            string? lastContentHash = null;
+
+            fileWatcher.Changed += (_, _) =>
+            {
+                var now = DateTime.Now;
+                if (now - lastWriteTime < debounceInterval)
+                {
+                    return; // 忽略防抖间隔内的事件
+                }
+                lastWriteTime = now;
+
+                // 延迟一下确保文件写入完成
+                Thread.Sleep(100);
+
+                try
+                {
+                    var content = File.ReadAllText(tempFile);
+                    
+                    // 计算内容哈希，检查是否真的改变了
+                    var contentHash = ComputeHash(content);
+                    if (contentHash == lastContentHash)
+                    {
+                        // 内容没有变化，跳过
+                        return;
+                    }
+                    lastContentHash = contentHash;
+                    
+                    var marks = Bookmark.ParseSimpleMark(content);
+
+                    if (marks.Count > 0)
+                    {
+                        // 更新 PDF
+                        var tempPdfPath = Path.Combine(Path.GetTempPath(), $"markpdf_watch_{Guid.NewGuid()}.pdf");
+                        try
+                        {
+                            using (var reader = new PdfReader(pdfFile))
+                            using (var writer = new PdfWriter(tempPdfPath))
+                            using (var pdfDoc = new PdfDocument(reader, writer))
+                            {
+                                AddBookmarks(pdfDoc, marks);
+                            }
+
+                            File.Copy(tempPdfPath, pdfFile, true);
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Auto-saved {marks.Count} bookmarks to PDF");
+                        }
+                        finally
+                        {
+                            TryDelete(tempPdfPath);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Error: {ex.Message}");
+                }
+            };
+
+            fileWatcher.EnableRaisingEvents = true;
+
+            // 等待用户按 Enter 停止
+            Console.ReadLine();
+
+            // 停止监听
+            fileWatcher.EnableRaisingEvents = false;
+
+            // 尝试关闭编辑器进程（如果还在运行）
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                }
+            }
+            catch { }
+
+            Console.WriteLine("Watch mode stopped.");
+        }
+        finally
+        {
+            TryDelete(tempFile);
+        }
+    }
+
+    /// <summary>
     /// 获取 PDF 中的所有书签
     /// </summary>
     private static List<PdfMark> GetBookmarks(PdfDocument pdfDoc)
@@ -264,5 +457,15 @@ class Pdf
     private static void TryDelete(string path)
     {
         try { if (File.Exists(path)) File.Delete(path); } catch { }
+    }
+
+    /// <summary>
+    /// 计算字符串的 SHA256 哈希值
+    /// </summary>
+    private static string ComputeHash(string content)
+    {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash);
     }
 }
